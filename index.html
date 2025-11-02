@@ -105,10 +105,10 @@
   <script>
     const db = firebase.database();
 
-    // 🏟️ Avalahalli Stadium coordinates (Gopalan Sports Center)
+    // 🏟️ Avalahalli Stadium coordinates
     const allowedLat = 12.985932;
     const allowedLng = 77.710128;
-    const allowedRadius = 0.1; // in km (100 meters)
+    const allowedRadius = 3.0; // ✅ 3 km radius
 
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371;
@@ -119,11 +119,10 @@
         Math.cos(lat1 * Math.PI / 180) *
         Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c; // distance in km
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     }
 
-    // Live updates
+    // 🔴 Live results update
     db.ref("poll").on("value", snapshot => {
       const data = snapshot.val();
       if (data) {
@@ -134,13 +133,13 @@
       }
     });
 
-    // If user already voted
+    // 🟡 Disable buttons if already voted
     if (localStorage.getItem("hasVoted") === "true") {
       document.querySelectorAll(".vote-btn").forEach(btn => btn.disabled = true);
       document.getElementById("poll-status").textContent = "✅ You’ve already voted. Thank you!";
     }
 
-    // Voting logic with location verification
+    // 🟢 Handle voting + location verification
     document.querySelectorAll(".vote-btn").forEach(button => {
       button.addEventListener("click", () => {
         navigator.geolocation.getCurrentPosition(
@@ -150,23 +149,25 @@
             const distance = haversine(lat, lon, allowedLat, allowedLng);
 
             document.getElementById("location-info").textContent =
-              `Your Location: ${lat.toFixed(5)}, ${lon.toFixed(5)} (Distance: ${distance.toFixed(2)} km)`;
+              `📍 Your Location: ${lat.toFixed(5)}, ${lon.toFixed(5)} (Distance: ${distance.toFixed(2)} km)`;
 
             if (distance <= allowedRadius) {
               const option = button.getAttribute("data-option");
               db.ref("poll/" + option).transaction(current => (current || 0) + 1);
+
               document.querySelectorAll(".vote-btn").forEach(btn => {
                 btn.disabled = true;
                 btn.style.display = "none";
               });
+
               localStorage.setItem("hasVoted", "true");
               document.getElementById("poll-status").textContent = "✅ Vote recorded! Thank you for voting.";
             } else {
               document.getElementById("poll-status").textContent =
-                "❌ Voting is only allowed inside Avalahalli Stadium (Gopalan). You seem too far from the venue.";
+                "❌ You seem too far from Avalahalli Stadium (outside 3 km range). Voting not allowed.";
             }
           },
-          () => {
+          err => {
             document.getElementById("poll-status").textContent =
               "⚠️ Please allow location access to verify your location before voting.";
           }
@@ -174,14 +175,16 @@
       });
     });
 
-    // Reset only local vote state (everyone can vote again)
+    // 🔄 Reset votes (local only)
     document.getElementById("resetVotes").addEventListener("click", () => {
-      localStorage.removeItem("hasVoted");
-      document.querySelectorAll(".vote-btn").forEach(btn => {
-        btn.disabled = false;
-        btn.style.display = "inline-block";
-      });
-      document.getElementById("poll-status").textContent = "✅ Voting reset! You can now vote again.";
+      if (confirm("Reset local vote restriction so everyone can vote again?")) {
+        localStorage.removeItem("hasVoted");
+        document.querySelectorAll(".vote-btn").forEach(btn => {
+          btn.disabled = false;
+          btn.style.display = "inline-block";
+        });
+        document.getElementById("poll-status").textContent = "🔁 You can now vote again!";
+      }
     });
   </script>
 </body>
