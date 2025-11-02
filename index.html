@@ -35,21 +35,6 @@
     .red { background-color: #F44336; }
     .yellow { background-color: #FFB300; color: #222; }
 
-    .reset-btn {
-      margin-top: 30px;
-      padding: 10px 20px;
-      font-size: 1em;
-      border: none;
-      border-radius: 8px;
-      background-color: #555;
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .reset-btn:hover {
-      background-color: #333;
-    }
-
     ul { list-style-type: none; padding: 0; margin-top: 35px; }
     li { font-size: 1.15em; margin: 8px 0; }
     .footer { margin-top: 40px; font-size: 0.9em; color: #666; }
@@ -95,9 +80,6 @@
     <li>Yellow House (Vikramshila): <span id="countD">0</span></li>
   </ul>
 
-  <!-- Reset button -->
-  <button id="resetVotes" class="reset-btn">🔄 Allow Everyone to Vote Again</button>
-
   <div class="footer">
     <p>Made by the students of GNS</p>
   </div>
@@ -105,13 +87,13 @@
   <script>
     const db = firebase.database();
 
-    // 🏟️ Avalahalli Stadium coordinates
-    const allowedLat = 12.985932;
-    const allowedLng = 77.710128;
-    const allowedRadius = 3.0; // ✅ 3 km radius
+    // 🏟️ New Venue Coordinates
+    const allowedLat = 13.029947040832479;
+    const allowedLng = 77.73874056820479;
+    const allowedRadius = 1; // 1 km buffer zone
 
     function haversine(lat1, lon1, lat2, lon2) {
-      const R = 6371;
+      const R = 6371; // Earth radius in km
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a =
@@ -119,10 +101,11 @@
         Math.cos(lat1 * Math.PI / 180) *
         Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLon / 2) ** 2;
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
     }
 
-    // 🔴 Live results update
+    // 🔴 Live updates
     db.ref("poll").on("value", snapshot => {
       const data = snapshot.val();
       if (data) {
@@ -133,13 +116,13 @@
       }
     });
 
-    // 🟡 Disable buttons if already voted
+    // 🟡 Disable voting if already voted
     if (localStorage.getItem("hasVoted") === "true") {
       document.querySelectorAll(".vote-btn").forEach(btn => btn.disabled = true);
       document.getElementById("poll-status").textContent = "✅ You’ve already voted. Thank you!";
     }
 
-    // 🟢 Handle voting + location verification
+    // 🟢 Voting logic with location verification
     document.querySelectorAll(".vote-btn").forEach(button => {
       button.addEventListener("click", () => {
         navigator.geolocation.getCurrentPosition(
@@ -149,42 +132,28 @@
             const distance = haversine(lat, lon, allowedLat, allowedLng);
 
             document.getElementById("location-info").textContent =
-              `📍 Your Location: ${lat.toFixed(5)}, ${lon.toFixed(5)} (Distance: ${distance.toFixed(2)} km)`;
+              `Your Location: ${lat.toFixed(5)}, ${lon.toFixed(5)} (Distance: ${distance.toFixed(2)} km)`;
 
             if (distance <= allowedRadius) {
               const option = button.getAttribute("data-option");
               db.ref("poll/" + option).transaction(current => (current || 0) + 1);
-
               document.querySelectorAll(".vote-btn").forEach(btn => {
                 btn.disabled = true;
                 btn.style.display = "none";
               });
-
               localStorage.setItem("hasVoted", "true");
               document.getElementById("poll-status").textContent = "✅ Vote recorded! Thank you for voting.";
             } else {
               document.getElementById("poll-status").textContent =
-                "❌ You seem too far from Avalahalli Stadium (outside 3 km range). Voting not allowed.";
+                "❌ Voting is only allowed within 1 km of the event venue.";
             }
           },
-          err => {
+          () => {
             document.getElementById("poll-status").textContent =
               "⚠️ Please allow location access to verify your location before voting.";
           }
         );
       });
-    });
-
-    // 🔄 Reset votes (local only)
-    document.getElementById("resetVotes").addEventListener("click", () => {
-      if (confirm("Reset local vote restriction so everyone can vote again?")) {
-        localStorage.removeItem("hasVoted");
-        document.querySelectorAll(".vote-btn").forEach(btn => {
-          btn.disabled = false;
-          btn.style.display = "inline-block";
-        });
-        document.getElementById("poll-status").textContent = "🔁 You can now vote again!";
-      }
     });
   </script>
 </body>
