@@ -35,8 +35,6 @@
     .red { background-color: #F44336; }
     .yellow { background-color: #FFB300; color: #222; }
 
-    ul { list-style-type: none; padding: 0; margin-top: 35px; }
-    li { font-size: 1.15em; margin: 8px 0; }
     .footer { margin-top: 40px; font-size: 0.9em; color: #666; }
   </style>
 
@@ -69,31 +67,23 @@
   <!-- Vote Buttons -->
   <button class="vote-btn green" data-option="optionA">Green House (Mithila)</button>
   <button class="vote-btn blue" data-option="optionB">Blue House (Nalanda)</button>
-  <button class="vote-btn red" data-option="optionC">Red House (Takshila)</button>
+  <button class="vote-btn red" data-option="optionC">Red House (Takshashila)</button>
   <button class="vote-btn yellow" data-option="optionD">Yellow House (Vikramshila)</button>
 
-  <h3 style="margin-top:30px;">📊 Live Results</h3>
-  <ul>
-    <li>Green House (Mithila): <span id="countA">0</span></li>
-    <li>Blue House (Nalanda): <span id="countB">0</span></li>
-    <li>Red House (Takshila): <span id="countC">0</span></li>
-    <li>Yellow House (Vikramshila): <span id="countD">0</span></li>
-  </ul>
-
   <div class="footer">
-    <p>Made by the students of GNS</p>
+    <p>Made by the students of GNS, Vamsi, Govardhan, Rehaan, and Kevin</p>
   </div>
 
   <script>
     const db = firebase.database();
 
-    // 🏟️ New Venue Coordinates
+    // 🏟️ New venue coordinates (exact)
     const allowedLat = 13.029947040832479;
     const allowedLng = 77.73874056820479;
     const allowedRadius = 1; // 1 km buffer zone
 
     function haversine(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Earth radius in km
+      const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a =
@@ -105,24 +95,13 @@
       return R * c;
     }
 
-    // 🔴 Live updates
-    db.ref("poll").on("value", snapshot => {
-      const data = snapshot.val();
-      if (data) {
-        document.getElementById("countA").textContent = data.optionA || 0;
-        document.getElementById("countB").textContent = data.optionB || 0;
-        document.getElementById("countC").textContent = data.optionC || 0;
-        document.getElementById("countD").textContent = data.optionD || 0;
-      }
-    });
-
-    // 🟡 Disable voting if already voted
+    // Disable voting if user already voted
     if (localStorage.getItem("hasVoted") === "true") {
       document.querySelectorAll(".vote-btn").forEach(btn => btn.disabled = true);
       document.getElementById("poll-status").textContent = "✅ You’ve already voted. Thank you!";
     }
 
-    // 🟢 Voting logic with location verification
+    // Voting logic with location check
     document.querySelectorAll(".vote-btn").forEach(button => {
       button.addEventListener("click", () => {
         navigator.geolocation.getCurrentPosition(
@@ -145,7 +124,7 @@
               document.getElementById("poll-status").textContent = "✅ Vote recorded! Thank you for voting.";
             } else {
               document.getElementById("poll-status").textContent =
-                "❌ Voting is only allowed within 1 km of the event venue.";
+                "❌ Voting is only allowed near the event venue.";
             }
           },
           () => {
