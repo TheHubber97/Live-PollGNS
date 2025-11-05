@@ -149,6 +149,13 @@
         );
       });
     });
+    db.ref("resetFlag").on("value", snap => {
+  if (snap.exists()) {
+    localStorage.removeItem("hasVoted");
+    location.reload();
+  }
+});
+
   </script>
 </body>
 </html>
